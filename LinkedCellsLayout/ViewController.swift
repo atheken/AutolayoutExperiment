@@ -9,82 +9,72 @@
 import UIKit
 
 class CustomCell : UIView {
-    override func translatesAutoresizingMaskIntoConstraints() -> Bool {
-        return false
-    }
 
-    override func intrinsicContentSize() -> CGSize {
-        var size = self.frame.size
-        return size
+    @IBOutlet weak var Height: NSLayoutConstraint!
+    @IBOutlet weak var Name: UILabel!
+    override func awakeFromNib() {
+        super.awakeFromNib()
+        var random = CGFloat(arc4random())
+        let height =  (random % 10) * 20.0;
+        self.backgroundColor = UIColor(hue: (random % 100)/100, saturation: 1.0, brightness: 1.0, alpha: 1.0)
+        self.Name.text = "Height: \(height)"
+        self.Height.constant = height
+        self.setTranslatesAutoresizingMaskIntoConstraints(false)
+        self.setNeedsLayout()
     }
 }
 
-class CustomView : UIView {
+func constraint(item:AnyObject, attr1:NSLayoutAttribute, relatedBy:NSLayoutRelation,
+    toItem:AnyObject?, attr2:NSLayoutAttribute,
+    multiplier: CGFloat, const:CGFloat) -> NSLayoutConstraint{
 
-    private var lastBounds: CGRect = CGRectZero
-
-    /*
-    override func layoutSubviews() {
-        super.layoutSubviews()
-        if !CGRectEqualToRect(self.bounds, lastBounds){
-        self.setNeedsUpdateConstraints()
-        self.setNeedsLayout()
-        //self.layoutIfNeeded() //leads to stack overflow
-        lastBounds = self.bounds
-
-        }
-    }
-    */
-
-    override func awakeFromNib() {
-        super.awakeFromNib()
-
-        for var i = 10.0; i > 0; i-- {
-            var cell = NSBundle.mainBundle().loadNibNamed("CustomView", owner: nil, options: nil)[0] as CustomCell
-            let green = CGFloat(0.1 * i)
-
-            cell.backgroundColor = UIColor(red: 0, green: green, blue: 0, alpha:1.0)
-
-            //cell.frame = CGRect(x: 0, y: 0, width: 600, height: CGFloat(20 * i))
-
-            //set this to false, or constraints are installed that are not compatible.
-            cell.setTranslatesAutoresizingMaskIntoConstraints(false)
-            self.addSubview(cell)
-        }
-
-        self.addLinkingConstraints()
-        self.updateConstraints()
-        self.setNeedsLayout()
-        self.layoutIfNeeded()
-    }
-
-    func addLinkingConstraints() {
-        var previousCell:UIView? = nil
-
-        var views = self.subviews.map({$0 as UIView})
-
-        for i in  views{
-            if let pCell = previousCell? {
-                self.addConstraint(NSLayoutConstraint(item: pCell, attribute: .Bottom, relatedBy: .Equal, toItem: i, attribute: .Top, multiplier: 1.0, constant: 0.0))
-            }
-            else{
-                self.addConstraint(NSLayoutConstraint(item: self, attribute: .Top, relatedBy: .Equal, toItem: i, attribute: .Top, multiplier: 1.0, constant: 0.0))
-            }
-
-            self.addConstraint(NSLayoutConstraint(item: self, attribute: .CenterX, relatedBy: .Equal, toItem: i, attribute: .CenterX, multiplier: 1.0, constant: 0.0))
-
-            self.addConstraint(NSLayoutConstraint(item: self, attribute: .Width, relatedBy: .Equal, toItem: i, attribute: .Width, multiplier: 1.0, constant: 0.0))
-
-            previousCell = i
-        }
-    }
+        return NSLayoutConstraint(item: item, attribute: attr1, relatedBy: relatedBy,
+            toItem: toItem, attribute: attr2, multiplier: multiplier, constant: const)
 }
 
 class ViewController: UIViewController {
 
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
+    @IBOutlet weak var ContentView: UIView!
+    var nib = UINib(nibName: "CustomCell", bundle: nil)
+    var cells:[CustomCell] = []
+    var hasCellConstraints = false
+
+    override func updateViewConstraints() {
+        super.updateViewConstraints()
+
+        if !hasCellConstraints && cells.count > 0 {
+            hasCellConstraints = true
+            var previousCell:CustomCell?
+
+            for cell in cells {
+                if let pCell = previousCell? {
+                    ContentView.addConstraint(constraint(cell, .Top, .Equal, pCell, .Bottom, 1.0, 0.0))
+                }else{
+                    ContentView.addConstraint(constraint(cell, .Top, .Equal, ContentView, .Top, 1.0, 0.0))
+                }
+
+                ContentView.addConstraint(constraint(cell, .Width, .Equal, ContentView, .Width, 1.0, 0.0))
+                ContentView.addConstraint(constraint(cell, .CenterX, .Equal, ContentView, .CenterX, 1.0, 0.0))
+
+                previousCell = cell
+            }
+            println("Content View Sets Resizing Mask Constraints? \(ContentView.translatesAutoresizingMaskIntoConstraints())")
+            ContentView.addConstraint(constraint(ContentView, .Bottom, .Equal, previousCell!, .Bottom, 1.0, 0.0))
+
+            self.ContentView.setNeedsLayout()
+        }
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        for var i = 0; i < 10; i++ {
+            var cell = nib.instantiateWithOwner(self, options: nil)[0] as CustomCell
+            self.ContentView.addSubview(cell)
+            self.cells.append(cell)
+        }
+        
+        self.view.setNeedsUpdateConstraints()
     }
 }
 
