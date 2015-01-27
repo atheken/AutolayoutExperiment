@@ -61,12 +61,15 @@ func constraint(item:AnyObject, attr1:NSLayoutAttribute, relatedBy:NSLayoutRelat
             toItem: toItem, attribute: attr2, multiplier: multiplier, constant: const)
 }
 
-class ViewController: UIViewController {
+class ViewController: UIViewController, UIScrollViewDelegate {
 
-    @IBOutlet weak var ContentView: UIView!
     var nib = UINib(nibName: "CustomCell", bundle: nil)
     var cells:[CustomCell] = []
     var hasCellConstraints = false
+
+    func scrollViewDidZoom(scrollView: UIScrollView) {
+        println("\(scrollView.contentOffset)");
+    }
 
     override func updateViewConstraints() {
         super.updateViewConstraints()
@@ -94,8 +97,29 @@ class ViewController: UIViewController {
         }
     }
 
+    private var scrollView = UIScrollView();
+    private var ContentView = UIView();
+
     override func viewDidLoad() {
         super.viewDidLoad()
+
+        scrollView.setTranslatesAutoresizingMaskIntoConstraints(false)
+        ContentView.setTranslatesAutoresizingMaskIntoConstraints(false)
+
+        var constraints = [
+            constraint(ContentView, .Top, .Equal, scrollView, .Top, 1.0, 0.0),
+            constraint(ContentView, .Leading, .Equal, scrollView, .Leading, 1.0, 0.0),
+            constraint(ContentView, .Width, .Equal, view, .Width, 1.0, 0.0),
+            constraint(view, .CenterX, .Equal, scrollView, .CenterX, 1.0, 0.0),
+            constraint(view, .Top, .Equal, scrollView, .Top, 1.0, 0.0),
+            constraint(view, .Width, .Equal, scrollView, .Width, 1.0, 0.0),
+            constraint(ContentView, .Bottom, .Equal, scrollView, .Bottom, 1.0, 0.0)
+        ]
+
+        view.addSubview(scrollView)
+        scrollView.addSubview(ContentView)
+
+        self.view.addConstraints(constraints)
 
         for var i = 0; i < 10; i++ {
             var cell = nib.instantiateWithOwner(self, options: nil)[0] as CustomCell
