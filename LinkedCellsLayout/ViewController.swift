@@ -8,18 +8,47 @@
 
 import UIKit
 
-class CustomCell : UIView {
+@IBDesignable
+class TranslateResizeMaskToConstraints: UIView {
+
+    @IBInspectable var Enabled:Bool = false
+
+    private var _interfaceBuilderContext = false
+
+    override func awakeFromNib() {
+        super.awakeFromNib()
+        setTranslatesAutoresizingMaskIntoConstraints(Enabled || _interfaceBuilderContext)
+    }
+
+
+    override func prepareForInterfaceBuilder() {
+        _interfaceBuilderContext = true
+    }
+}
+
+class CustomCell : TranslateResizeMaskToConstraints {
+
+    func randomizeHeight(){
+        var random = CGFloat(arc4random())
+        let height =  (random % 100) + 20;
+        self.backgroundColor = UIColor(hue: (random % 100)/100, saturation: 1.0, brightness: 1.0, alpha: 1.0)
+        self.Name.text = "Height: \(height)"
+        self.Height.constant = height
+    }
+
+    @IBAction func RandomizeHeight(sender: AnyObject) {
+        layoutIfNeeded()
+        UIView.animateWithDuration(0.5){
+            self.randomizeHeight()
+            self.setNeedsLayout()
+        }
+    }
 
     @IBOutlet weak var Height: NSLayoutConstraint!
     @IBOutlet weak var Name: UILabel!
     override func awakeFromNib() {
         super.awakeFromNib()
-        var random = CGFloat(arc4random())
-        let height =  (random % 10) * 20.0;
-        self.backgroundColor = UIColor(hue: (random % 100)/100, saturation: 1.0, brightness: 1.0, alpha: 1.0)
-        self.Name.text = "Height: \(height)"
-        self.Height.constant = height
-        self.setTranslatesAutoresizingMaskIntoConstraints(false)
+        randomizeHeight()
         self.setNeedsLayout()
     }
 }
@@ -58,7 +87,7 @@ class ViewController: UIViewController {
 
                 previousCell = cell
             }
-            println("Content View Sets Resizing Mask Constraints? \(ContentView.translatesAutoresizingMaskIntoConstraints())")
+
             ContentView.addConstraint(constraint(ContentView, .Bottom, .Equal, previousCell!, .Bottom, 1.0, 0.0))
 
             self.ContentView.setNeedsLayout()
@@ -67,7 +96,7 @@ class ViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
         for var i = 0; i < 10; i++ {
             var cell = nib.instantiateWithOwner(self, options: nil)[0] as CustomCell
             self.ContentView.addSubview(cell)

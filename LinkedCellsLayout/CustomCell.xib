@@ -21,6 +21,7 @@
                     <nil key="highlightedColor"/>
                 </label>
             </subviews>
+            <gestureRecognizers/>
             <constraints>
                 <constraint firstAttribute="bottom" secondItem="rHP-ZR-Rx5" secondAttribute="bottom" constant="8" id="6N0-gD-QhL"/>
                 <constraint firstItem="rHP-ZR-Rx5" firstAttribute="top" secondItem="iN0-l3-epB" secondAttribute="topMargin" id="7JL-Ag-7Ax"/>
@@ -32,8 +33,14 @@
             <connections>
                 <outlet property="Height" destination="HfA-go-0XQ" id="Lfc-5V-94k"/>
                 <outlet property="Name" destination="rHP-ZR-Rx5" id="JMd-7f-Xsu"/>
+                <outletCollection property="gestureRecognizers" destination="Xef-4D-E8P" appends="YES" id="u0H-xh-Fv1"/>
             </connections>
             <point key="canvasLocation" x="610" y="617.5"/>
         </view>
+        <tapGestureRecognizer id="Xef-4D-E8P">
+            <connections>
+                <action selector="RandomizeHeight:" destination="iN0-l3-epB" id="sfm-ql-s46"/>
+            </connections>
+        </tapGestureRecognizer>
     </objects>
 </document>
