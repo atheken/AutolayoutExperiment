@@ -28,13 +28,17 @@ class TranslateResizeMaskToConstraints: UIView {
 
 class CustomCell : TranslateResizeMaskToConstraints, UIScrollViewDelegate {
 
+    var topConstraint:NSLayoutConstraint? = nil
+
     var cellIndex = 0
-    var h = CGFloat(120.0)
+    var h = CGFloat(0.0)
 
     func scrollViewDidScroll(scrollView: UIScrollView) {
+        let offset = scrollView.contentOffset.y
         if cellIndex == 0 {
-            let offset = scrollView.contentOffset.y
-            var top = self.constraintsAffectingLayoutForAxis(.Vertical).first as NSLayoutConstraint
+
+            var top = topConstraint!
+
             if  offset < 0 {
                 self.Height.constant = self.h - offset;
                 top.constant = scrollView.contentOffset.y
@@ -44,17 +48,36 @@ class CustomCell : TranslateResizeMaskToConstraints, UIScrollViewDelegate {
                 var constant = offset
 
                 if (constant >= 40.0) {
-                    constant = 40.0
+                    constant -= 40.0
+                }else {
+                    constant = 0
                 }
+
                 top.constant = constant
             }
             self.setNeedsLayout()
         }
+        /*
+        if cellIndex == 1 {
+        var top = topConstraint!
+
+        var update = CGFloat(0.0)
+        if (offset > 0){
+        update = 120
+        }
+
+        if(top.constant != update){
+        top.constant = update
+        self.setNeedsLayout()
+        }
+        }
+        */
     }
 
     func randomizeHeight(){
         var random = CGFloat(arc4random())
-        let height =  (random % 100) + 20;
+        let height = cellIndex == 0 ? CGFloat(120.0) : ((random % 100) + 20);
+        h = height
         self.backgroundColor = UIColor(hue: (random % 100)/100, saturation: 1.0, brightness: 1.0, alpha: 1.0)
         self.Name.text = "Height: \(height)"
         self.Height.constant = height
@@ -98,17 +121,33 @@ class ViewController: UIViewController, UIScrollViewDelegate {
             hasCellConstraints = true
             var previousCell:CustomCell?
 
+            var i = 0
+
             for cell in cells {
                 if let pCell = previousCell? {
-                    contentView.addConstraint(constraint(cell, .Top, .Equal, pCell, .Bottom, 1.0, 0.0))
+                    if i == 1 {
+                        var top = constraint(cell, .Top, .Equal, contentView, .Top, 1.0, 120.0)
+                        top.identifier = "TOP-CONSTRAINT"
+                        cell.topConstraint = top
+                        contentView.addConstraint(top)
+                    }else{
+                        var top = constraint(cell, .Top, .Equal, pCell, .Bottom, 1.0, 0.0)
+                        top.identifier = "TOP-CONSTRAINT"
+                        cell.topConstraint = top
+                        contentView.addConstraint(top)
+                    }
                 }else{
-                    contentView.addConstraint(constraint(cell, .Top, .Equal, contentView, .Top, 1.0, 0.0))
+                    var top = constraint(cell, .Top, .Equal, contentView, .Top, 1.0, 0.0)
+                    top.identifier = "TOP-CONSTRAINT"
+                    cell.topConstraint = top
+                    contentView.addConstraint(top)
                 }
 
                 contentView.addConstraint(constraint(cell, .Width, .Equal, contentView, .Width, 1.0, 0.0))
                 contentView.addConstraint(constraint(cell, .CenterX, .Equal, contentView, .CenterX, 1.0, 0.0))
 
                 previousCell = cell
+                i++
             }
 
             contentView.addConstraint(constraint(contentView, .Bottom, .Equal, previousCell!, .Bottom, 1.0, 0.0))
@@ -158,7 +197,7 @@ class ViewController: UIViewController, UIScrollViewDelegate {
             self.contentView.addSubview(cell)
             self.cells.append(cell)
         }
-        
+        self.contentView.bringSubviewToFront(cells[0])
         self.view.setNeedsUpdateConstraints()
     }
 }
