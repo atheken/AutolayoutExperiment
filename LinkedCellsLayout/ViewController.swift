@@ -26,7 +26,31 @@ class TranslateResizeMaskToConstraints: UIView {
     }
 }
 
-class CustomCell : TranslateResizeMaskToConstraints {
+class CustomCell : TranslateResizeMaskToConstraints, UIScrollViewDelegate {
+
+    var cellIndex = 0
+    var h = CGFloat(120.0)
+
+    func scrollViewDidScroll(scrollView: UIScrollView) {
+        if cellIndex == 0 {
+            let offset = scrollView.contentOffset.y
+            var top = self.constraintsAffectingLayoutForAxis(.Vertical).first as NSLayoutConstraint
+            if  offset < 0 {
+                self.Height.constant = self.h - offset;
+                top.constant = scrollView.contentOffset.y
+            } else if offset >= 0 {
+                self.Height.constant = h;
+
+                var constant = offset
+
+                if (constant >= 40.0) {
+                    constant = 40.0
+                }
+                top.constant = constant
+            }
+            self.setNeedsLayout()
+        }
+    }
 
     func randomizeHeight(){
         var random = CGFloat(arc4random())
@@ -67,10 +91,6 @@ class ViewController: UIViewController, UIScrollViewDelegate {
     var cells:[CustomCell] = []
     var hasCellConstraints = false
 
-    func scrollViewDidZoom(scrollView: UIScrollView) {
-        println("\(scrollView.contentOffset)");
-    }
-
     override func updateViewConstraints() {
         super.updateViewConstraints()
 
@@ -80,50 +100,62 @@ class ViewController: UIViewController, UIScrollViewDelegate {
 
             for cell in cells {
                 if let pCell = previousCell? {
-                    ContentView.addConstraint(constraint(cell, .Top, .Equal, pCell, .Bottom, 1.0, 0.0))
+                    contentView.addConstraint(constraint(cell, .Top, .Equal, pCell, .Bottom, 1.0, 0.0))
                 }else{
-                    ContentView.addConstraint(constraint(cell, .Top, .Equal, ContentView, .Top, 1.0, 0.0))
+                    contentView.addConstraint(constraint(cell, .Top, .Equal, contentView, .Top, 1.0, 0.0))
                 }
 
-                ContentView.addConstraint(constraint(cell, .Width, .Equal, ContentView, .Width, 1.0, 0.0))
-                ContentView.addConstraint(constraint(cell, .CenterX, .Equal, ContentView, .CenterX, 1.0, 0.0))
+                contentView.addConstraint(constraint(cell, .Width, .Equal, contentView, .Width, 1.0, 0.0))
+                contentView.addConstraint(constraint(cell, .CenterX, .Equal, contentView, .CenterX, 1.0, 0.0))
 
                 previousCell = cell
             }
 
-            ContentView.addConstraint(constraint(ContentView, .Bottom, .Equal, previousCell!, .Bottom, 1.0, 0.0))
+            contentView.addConstraint(constraint(contentView, .Bottom, .Equal, previousCell!, .Bottom, 1.0, 0.0))
 
-            self.ContentView.setNeedsLayout()
+            self.contentView.setNeedsLayout()
         }
     }
 
+    func scrollViewDidScroll(scrollView: UIScrollView){
+        for cell in cells {
+            cell.scrollViewDidScroll(scrollView)
+        }
+        contentView.layoutIfNeeded()
+    }
+
     private var scrollView = UIScrollView();
-    private var ContentView = UIView();
+    private var contentView = UIView();
 
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        scrollView.delegate = self
         scrollView.setTranslatesAutoresizingMaskIntoConstraints(false)
-        ContentView.setTranslatesAutoresizingMaskIntoConstraints(false)
+        contentView.setTranslatesAutoresizingMaskIntoConstraints(false)
 
         var constraints = [
-            constraint(ContentView, .Top, .Equal, scrollView, .Top, 1.0, 0.0),
-            constraint(ContentView, .Leading, .Equal, scrollView, .Leading, 1.0, 0.0),
-            constraint(ContentView, .Width, .Equal, view, .Width, 1.0, 0.0),
-            constraint(view, .CenterX, .Equal, scrollView, .CenterX, 1.0, 0.0),
+            constraint(contentView, .Top, .Equal, scrollView, .Top, 1.0, 0.0),
+            constraint(contentView, .Leading, .Equal, scrollView, .Leading, 1.0, 0.0),
+            constraint(contentView, .Trailing, .Equal, scrollView, .Trailing, 1.0, 0.0),
+            constraint(contentView, .Bottom, .Equal, scrollView, .Bottom, 1.0, 0.0),
+            constraint(contentView, .Width, .Equal, view, .Width, 1.0, 0.0),
+
+            //CenterX/CenterY does NOT work on scroll view.
             constraint(view, .Top, .Equal, scrollView, .Top, 1.0, 0.0),
-            constraint(view, .Width, .Equal, scrollView, .Width, 1.0, 0.0),
-            constraint(ContentView, .Bottom, .Equal, scrollView, .Bottom, 1.0, 0.0)
+            constraint(view, .Leading, .Equal, scrollView, .Leading, 1.0, 0.0),
+            constraint(view, .Trailing, .Equal, scrollView, .Trailing, 1.0, 0.0),
+            constraint(view, .Bottom, .Equal, scrollView, .Bottom, 1.0, 0.0)
         ]
 
         view.addSubview(scrollView)
-        scrollView.addSubview(ContentView)
+        scrollView.addSubview(contentView)
 
         self.view.addConstraints(constraints)
 
         for var i = 0; i < 10; i++ {
             var cell = nib.instantiateWithOwner(self, options: nil)[0] as CustomCell
-            self.ContentView.addSubview(cell)
+            cell.cellIndex = i
+            self.contentView.addSubview(cell)
             self.cells.append(cell)
         }
         
