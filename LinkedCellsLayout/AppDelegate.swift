@@ -13,8 +13,27 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
 
+    let nib = UINib(nibName: "CustomCell", bundle: nil)
 
     func application(application: UIApplication, didFinishLaunchingWithOptions launchOptions: [NSObject: AnyObject]?) -> Bool {
+
+        var cells:[DynamicCell] = []
+
+        for var i = 0; i < 10; i++ {
+            var cell = nib.instantiateWithOwner(self, options: nil)[0] as CustomCell
+            cell.leading = i == 0
+            cells.append(cell)
+        }
+
+        var window = UIWindow(frame: UIScreen.mainScreen().bounds)
+        var viewController = ViewController()
+        viewController.setCells(cells)
+        window.rootViewController = viewController
+        window.addSubview(viewController.view)
+
+        self.window = window
+        window.makeKeyAndVisible()
+
         return true
     }
 
