@@ -26,11 +26,43 @@ class TranslateResizeMaskToConstraints: UIView {
     }
 }
 
-class CustomCell : TranslateResizeMaskToConstraints {
+class DynamicCell : UIView{
+    var leading = true
+    var topConstraint : NSLayoutConstraint?
+    var initialHeight:CGFloat?
+}
+
+class CustomCell : DynamicCell, UIScrollViewDelegate {
+
+    func scrollViewDidScroll(scrollView: UIScrollView) {
+        let offset = scrollView.contentOffset.y
+        if leading {
+            var top = topConstraint!
+
+            if  offset < 0 {
+                self.Height.constant = (initialHeight ?? CGFloat(0.0)) - offset;
+                top.constant = scrollView.contentOffset.y
+            } else if offset >= 0 {
+                self.Height.constant = initialHeight ?? CGFloat(0.0);
+
+                var constant = offset
+
+                if (constant >= 40.0) {
+                    constant -= 40.0
+                }else {
+                    constant = 0
+                }
+
+                top.constant = constant
+            }
+            self.setNeedsLayout()
+        }
+    }
 
     func randomizeHeight(){
         var random = CGFloat(arc4random())
-        let height =  (random % 100) + 20;
+        let height = leading ? CGFloat(120.0) : ((random % 100) + 20);
+        initialHeight = height
         self.backgroundColor = UIColor(hue: (random % 100)/100, saturation: 1.0, brightness: 1.0, alpha: 1.0)
         self.Name.text = "Height: \(height)"
         self.Height.constant = height
@@ -61,11 +93,9 @@ func constraint(item:AnyObject, attr1:NSLayoutAttribute, relatedBy:NSLayoutRelat
             toItem: toItem, attribute: attr2, multiplier: multiplier, constant: const)
 }
 
-class ViewController: UIViewController {
+class ViewController: UIViewController, UIScrollViewDelegate {
 
-    @IBOutlet weak var ContentView: UIView!
-    var nib = UINib(nibName: "CustomCell", bundle: nil)
-    var cells:[CustomCell] = []
+    var cells:[DynamicCell] = []
     var hasCellConstraints = false
 
     override func updateViewConstraints() {
@@ -73,37 +103,87 @@ class ViewController: UIViewController {
 
         if !hasCellConstraints && cells.count > 0 {
             hasCellConstraints = true
-            var previousCell:CustomCell?
+            var previousCell:DynamicCell?
+
+            var i = 0
 
             for cell in cells {
                 if let pCell = previousCell? {
-                    ContentView.addConstraint(constraint(cell, .Top, .Equal, pCell, .Bottom, 1.0, 0.0))
+                    if i == 1 {
+                        var top = constraint(cell, .Top, .Equal, contentView, .Top, 1.0, 120.0)
+                        cell.topConstraint = top
+                        contentView.addConstraint(top)
+                    }else{
+                        var top = constraint(cell, .Top, .Equal, pCell, .Bottom, 1.0, 0.0)
+                        cell.topConstraint = top
+                        contentView.addConstraint(top)
+                    }
                 }else{
-                    ContentView.addConstraint(constraint(cell, .Top, .Equal, ContentView, .Top, 1.0, 0.0))
+                    var top = constraint(cell, .Top, .Equal, contentView, .Top, 1.0, 0.0)
+                    cell.topConstraint = top
+                    contentView.addConstraint(top)
                 }
 
-                ContentView.addConstraint(constraint(cell, .Width, .Equal, ContentView, .Width, 1.0, 0.0))
-                ContentView.addConstraint(constraint(cell, .CenterX, .Equal, ContentView, .CenterX, 1.0, 0.0))
+                contentView.addConstraint(constraint(cell, .Width, .Equal, contentView, .Width, 1.0, 0.0))
+                contentView.addConstraint(constraint(cell, .CenterX, .Equal, contentView, .CenterX, 1.0, 0.0))
 
                 previousCell = cell
+                i++
             }
 
-            ContentView.addConstraint(constraint(ContentView, .Bottom, .Equal, previousCell!, .Bottom, 1.0, 0.0))
+            contentView.addConstraint(constraint(contentView, .Bottom, .Equal, previousCell!, .Bottom, 1.0, 0.0))
 
-            self.ContentView.setNeedsLayout()
+            self.contentView.setNeedsLayout()
         }
+    }
+
+    func scrollViewDidScroll(scrollView: UIScrollView){
+        for cell in cells {
+                if let c = cell as? UIScrollViewDelegate {
+                    if let call = c.scrollViewDidScroll? {
+                    call(scrollView)
+                }
+            }
+        }
+        contentView.layoutIfNeeded()
+    }
+
+    private var scrollView = UIScrollView();
+    private var contentView = UIView();
+
+    func setCells(cells:[DynamicCell]){
+
+        self.cells = cells
+        for cell in cells.reverse() {
+            cell.setTranslatesAutoresizingMaskIntoConstraints(false)
+            self.contentView.addSubview(cell)
+        }
+        self.view.setNeedsUpdateConstraints()
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        scrollView.delegate = self
+        scrollView.setTranslatesAutoresizingMaskIntoConstraints(false)
+        contentView.setTranslatesAutoresizingMaskIntoConstraints(false)
 
-        for var i = 0; i < 10; i++ {
-            var cell = nib.instantiateWithOwner(self, options: nil)[0] as CustomCell
-            self.ContentView.addSubview(cell)
-            self.cells.append(cell)
-        }
-        
-        self.view.setNeedsUpdateConstraints()
+        var constraints:[NSLayoutConstraint] = []
+        constraints.append(constraint(contentView, .Top, .Equal, scrollView, .Top, 1.0, 0.0))
+        constraints.append(constraint(contentView, .Leading, .Equal, scrollView, .Leading, 1.0, 0.0))
+        constraints.append(constraint(contentView, .Trailing, .Equal, scrollView, .Trailing, 1.0, 0.0))
+        constraints.append(constraint(contentView, .Bottom, .Equal, scrollView, .Bottom, 1.0, 0.0))
+        constraints.append(constraint(contentView, .Width, .Equal, view, .Width, 1.0, 0.0))
+
+        //CenterX/CenterY does NOT work on scroll view.
+        constraints.append(constraint(view, .Top, .Equal, scrollView, .Top, 1.0, 0.0))
+        constraints.append(constraint(view, .Leading, .Equal, scrollView, .Leading, 1.0, 0.0))
+        constraints.append(constraint(view, .Trailing, .Equal, scrollView, .Trailing, 1.0, 0.0))
+        constraints.append(constraint(view, .Bottom, .Equal, scrollView, .Bottom, 1.0, 0.0))
+
+        view.addSubview(scrollView)
+        scrollView.addSubview(contentView)
+
+        self.view.addConstraints(constraints)
     }
 }
 
